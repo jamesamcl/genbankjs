@@ -1,0 +1,23 @@
+{
+  "name": "genbankjs",
+  "description": "JavaScript parser for the GenBank Flat File (GBF) format",
+  "main": "genbank.js",
+  "authors": [
+    "James McLaughlin"
+  ],
+  "license": "BSD",
+  "keywords": [
+    "genbank",
+    "bio",
+    "gbf"
+  ],
+  "homepage": "https://github.com/udp/genbankjs",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
