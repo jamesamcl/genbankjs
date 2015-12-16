@@ -322,7 +322,4 @@ if (typeof exports !== 'undefined') {
     exports = module.exports = genbank;
   }
   exports.genbank = genbank;
-} else {
-  root['genbank'] = genbank;
 }
-
