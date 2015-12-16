@@ -108,8 +108,9 @@ genbank.parseGBF = function (gbf) {
 
       case 'REFERENCE':
 
-        if (record.references === undefined)
+        if (record.references === undefined) {
           record.references = [];
+        }
 
         var bases = field.value[0].match(/^([0-9]+) +\(bases ([0-9]+) to ([0-9]+)\)$/);
 
@@ -139,7 +140,6 @@ genbank.parseGBF = function (gbf) {
               reference.pubmed = subfield.value.join(' ');
               break;
           }
-          ;
         });
 
         record.references.push(reference);
@@ -161,6 +161,10 @@ genbank.parseGBF = function (gbf) {
 
           if (complement !== null) {
             location = complement[1];
+          }
+
+          if (location.split('..').length < 2) {
+            location = location + '..' + location;
           }
 
           location = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
@@ -200,12 +204,14 @@ genbank.parseGBF = function (gbf) {
 
         break;
     }
-    ;
   });
 
-  record.references = record.references.sort(function (a, b) {
-    return a.number - b.number;
-  });
+
+  if (record.references) { //might not exist
+    record.references = record.references.sort(function (a, b) {
+      return a.number - b.number;
+    });
+  }
 
   return record;
 }
