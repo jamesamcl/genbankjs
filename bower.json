@@ -1,5 +1,6 @@
 {
   "name": "genbankjs",
+  "version": "0.0.1",
   "description": "JavaScript parser for the GenBank Flat File (GBF) format",
   "main": "genbank.js",
   "authors": [

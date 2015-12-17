@@ -214,7 +214,7 @@ genbank.parseGBF = function (gbf) {
   }
 
   return record;
-}
+};
 
 genbank.gbfToDisplayList = function (gbf) {
 
