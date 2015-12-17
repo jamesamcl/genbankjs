@@ -16,7 +16,7 @@ TODO
 ```
 genbank = require('./genbank');
 
-var sample = require('fs').readFileSync('sample.gbf') + '';
+var sample = require('fs').readFileSync('sample.gbf','utf8');
 var gbf = genbank.parseGBF(sample);
 
 console.log(JSON.stringify(gbf, null, 2));

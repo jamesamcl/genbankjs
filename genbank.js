@@ -1,314 +1,325 @@
+var genbank = {};
 
-exports.parseGBF = function parseGBF(gbf) {
+genbank.parseGBF = function (gbf) {
 
-    gbf = gbf.split('\n');
+  gbf = gbf.split('\n');
 
-    for(var origin = 0; origin < gbf.length; ++ origin)
-        if(gbf[origin].indexOf('ORIGIN ') === 0)
-            break;
+  for (var origin = 0; origin < gbf.length; ++origin)
+    if (gbf[origin].indexOf('ORIGIN ') === 0)
+      break;
 
-    var record = {
+  var record = {
 
-        /* Collapse everything after the origin (the sequence) into a single
-         * string, removing line numbers and spaces.
-         */
-        sequence: gbf.slice(origin + 1).map(function(line) {
-
-            return line.trim().split(' ').slice(1).join('');
-
-        }).join('')
-
-    };
-
-    /* Parse everything before the ORIGIN (the annotations) with parseFlatFile
+    /* Collapse everything after the origin (the sequence) into a single
+     * string, removing line numbers and spaces.
      */
-    parseFlatFile(gbf.slice(0, origin)).forEach(function(field) {
+    sequence: gbf.slice(origin + 1).map(function (line) {
 
-        switch(field.name)
-        {
-        case 'LOCUS':
+      return line.trim().split(' ').slice(1).join('');
 
-            /* LOCUS       SCU49845                5028 bp    DNA     PLN 23-MAR-2010 */
-            var locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
+    }).join('')
 
-            if(locus !== null) {
+  };
 
-                record.locusName = locus[1];
-                record.sequenceLength = locus[2];
-                record.moleculeType = locus[3];
-                record.division = locus[4];
-                record.modified = locus[5];
-            }
+  /* Parse everything before the ORIGIN (the annotations) with parseFlatFile
+   */
+  parseFlatFile(gbf.slice(0, origin)).forEach(function (field) {
 
-            /* LOCUS       SCU49845                5028 bp    DNA     linear   PLN 23-MAR-2010 */
-            locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([a-z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
+    switch (field.name) {
+      case 'LOCUS':
 
-            if(locus !== null) {
+        /* LOCUS       SCU49845                5028 bp    DNA     PLN 23-MAR-2010 */
+        var locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
 
-                record.locusName = locus[1];
-                record.sequenceLength = locus[2];
-                record.moleculeType = locus[3];
-                record.moleculeTypeDisp = locus[4];
-                record.division = locus[5];
-                record.modified = locus[6];
-            }
-            
+        if (locus !== null) {
 
-            break;
+          record.locusName = locus[1];
+          record.sequenceLength = locus[2];
+          record.moleculeType = locus[3];
+          record.division = locus[4];
+          record.modified = locus[5];
+        }
 
-        case 'DEFINITION':
+        /* LOCUS       SCU49845                5028 bp    DNA     linear   PLN 23-MAR-2010 */
+        locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([a-z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
 
-            record.definition = field.value.join(' ');
-            break;
+        if (locus !== null) {
 
-        case 'ACCESSION':
+          record.locusName = locus[1];
+          record.sequenceLength = locus[2];
+          record.moleculeType = locus[3];
+          record.moleculeTypeDisp = locus[4];
+          record.division = locus[5];
+          record.modified = locus[6];
+        }
 
-            record.accession = field.value.join(' ');
-            break;
 
-        case 'VERSION':
+        break;
 
-            record.version = field.value.join(' ');
-            break;
+      case 'DEFINITION':
 
-        case 'KEYWORDS':
+        record.definition = field.value.join(' ');
+        break;
 
-            if(field.value == '.')
-                break;
+      case 'ACCESSION':
 
-            /* TODO */
+        record.accession = field.value.join(' ');
+        break;
 
-            break;
+      case 'VERSION':
 
-        case 'SOURCE':
+        record.version = field.value.join(' ');
+        break;
 
-            record.source = {
-                name: field.value.join(' ')
+      case 'KEYWORDS':
+
+        if (field.value == '.')
+          break;
+
+        /* TODO */
+
+        break;
+
+      case 'SOURCE':
+
+        record.source = {
+          name: field.value.join(' ')
+        };
+
+        field.children.forEach(function (subfield) {
+
+          if (subfield.name == 'ORGANISM') {
+
+            record.source.organism = {
+
+              name: subfield.value[0],
+
+              lineage: subfield.value.slice(1).join(' ').split('; ').map(function (s) {
+
+                s = s.trim();
+
+                return s[s.length - 1] == '.' ? s.slice(0, s.length - 1) : s;
+              })
             };
+          }
+        });
 
-            field.children.forEach(function(subfield) {
+        break;
 
-                if(subfield.name == 'ORGANISM') {
+      case 'REFERENCE':
 
-                    record.source.organism = {
+        if (record.references === undefined) {
+          record.references = [];
+        }
 
-                        name: subfield.value[0],
+        var bases = field.value[0].match(/^([0-9]+) +\(bases ([0-9]+) to ([0-9]+)\)$/);
 
-                        lineage: subfield.value.slice(1).join(' ').split('; ').map(function(s) {
+        var reference = bases !== null ? {
 
-                            s = s.trim();
+          number: parseInt(bases[1]),
+          start: parseInt(bases[2]),
+          end: parseInt(bases[3])
 
-                            return s[s.length - 1] == '.' ? s.slice(0, s.length - 1) : s;
-                        })
-                    };
-                }
-            });
+        } : {};
 
-            break;
+        field.children.forEach(function (subfield) {
+          switch (subfield.name) {
+            case 'AUTHORS':
+              reference.authors = subfield.value.join(' ');
+              break;
 
-        case 'REFERENCE':
+            case 'TITLE':
+              reference.title = subfield.value.join(' ');
+              break;
 
-            if(record.references === undefined)
-                record.references = [];
+            case 'JOURNAL':
+              reference.journal = subfield.value.join(' ');
+              break;
 
-            var bases = field.value[0].match(/^([0-9]+) +\(bases ([0-9]+) to ([0-9]+)\)$/);
+            case 'PUBMED':
+              reference.pubmed = subfield.value.join(' ');
+              break;
+          }
+        });
 
-            var reference = bases !== null ? {
+        record.references.push(reference);
 
-                number: parseInt(bases[1]),
-                start: parseInt(bases[2]),
-                end: parseInt(bases[3])
+        break;
 
-            } : {};
+      case 'FEATURES':
 
-            field.children.forEach(function(subfield) {
-                switch(subfield.name)
-                {
-                case 'AUTHORS':
-                    reference.authors = subfield.value.join(' ');
-                    break;
+        record.features = [];
 
-                case 'TITLE':
-                    reference.title = subfield.value.join(' ');
-                    break;
+        field.children.forEach(function (feature) {
 
-                case 'JOURNAL':
-                    reference.journal = subfield.value.join(' ');
-                    break;
+          var location = feature.value[0];
 
-                case 'PUBMED':
-                    reference.pubmed = subfield.value.join(' ');
-                    break;
-                };
-            });
+          var partial3Prime = location.indexOf('<') !== -1;
+          var partial5Prime = location.indexOf('>') !== -1;
 
-            record.references.push(reference);
+          var complement = location.match(/^complement\((.+)\)$/);
 
-            break;
+          if (complement !== null) {
+            location = complement[1];
+          }
 
-       case 'FEATURES':
+          if (location.split('..').length < 2) {
+            location = location + '..' + location;
+          }
 
-            record.features = [];
+          location = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
 
-            field.children.forEach(function(feature) {
-
-                var location = feature.value[0];
-
-                var partial3Prime = location.indexOf('<') !== -1;
-                var partial5Prime = location.indexOf('>') !== -1;
-
-                var complement = location.match(/^complement\((.+)\)$/);
-
-                if(complement !== null) {
-                    location = complement[1];
-                }
-
-                location = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
-
-                var f = {
-                    key: feature.name,
-                    location: {
-                        start: parseInt(location[1]),
-                        end: parseInt(location[2]),
-                        partial3Prime: partial3Prime,
-                        partial5Prime: partial5Prime,
-                        strand: complement !== null ? 'complementary' : 'forward'
-                    }
-                };
-
-                var qualifier;
-
-                /* TODO look for/process specific qualifiers?
-                 */
-                for(var i = 1; i < feature.value.length; ++ i) {
-
-                    var qualifierLine = feature.value[i];
-
-                    if(qualifierLine[0] !== '/') {
-
-                        f[qualifier] += qualifierLine.split('"')[0];
-                        continue;
-                    }
-
-                    qualifier = qualifierLine.slice(1).split('=')[0];
-
-                    f[qualifier] = qualifierLine.split('"')[1];
-                }
-
-                record.features.push(f);
-            });
-
-            break;
-        };
-    });
-
-    record.references = record.references.sort(function(a, b) {
-        return a.number - b.number;
-    });
-
-    return record;
-}
-
-exports.gbfToDisplayList = function gbfToDisplayList(gbf) {
-
-    var displayList = {
-        version: 1,
-        segments: [
-            { id: gbf.locusName,
-              name: gbf.locusName,
-              thickness: 1,
-              sequence: []
+          var f = {
+            key: feature.name,
+            location: {
+              start: parseInt(location[1]),
+              end: parseInt(location[2]),
+              partial3Prime: partial3Prime,
+              partial5Prime: partial5Prime,
+              strand: complement !== null ? 'complementary' : 'forward'
             }
-        ],
+          };
 
-        joins: [],
-        arcs: []
-    };
+          var qualifier;
 
-    gbf.features.forEach(function(feature) {
+          /* TODO look for/process specific qualifiers?
+           */
+          for (var i = 1; i < feature.value.length; ++i) {
 
-        switch(feature.key)
-        {
-        case 'CDS':
+            var qualifierLine = feature.value[i];
 
-            displayList.segments[0].sequence.push({
+            if (qualifierLine[0] !== '/') {
 
-                type: 'cds',
-                direction: feature.strand == 'complementary' ? 'backward' : 'forward',
-                name: feature.product
+              f[qualifier] += qualifierLine.split('"')[0];
+              continue;
+            }
 
-            });
+            qualifier = qualifierLine.slice(1).split('=')[0];
 
-            break;
-        };
+            f[qualifier] = qualifierLine.split('"')[1];
+          }
 
+          record.features.push(f);
+        });
+
+        break;
+    }
+  });
+
+
+  if (record.references) { //might not exist
+    record.references = record.references.sort(function (a, b) {
+      return a.number - b.number;
     });
+  }
 
-    return displayList;
-}
+  return record;
+};
+
+genbank.gbfToDisplayList = function (gbf) {
+
+  var displayList = {
+    version: 1,
+    segments: [
+      {
+        id: gbf.locusName,
+        name: gbf.locusName,
+        thickness: 1,
+        sequence: []
+      }
+    ],
+
+    joins: [],
+    arcs: []
+  };
+
+  gbf.features.forEach(function (feature) {
+
+    switch (feature.key) {
+      case 'CDS':
+
+        displayList.segments[0].sequence.push({
+
+          type: 'cds',
+          direction: feature.strand == 'complementary' ? 'backward' : 'forward',
+          name: feature.product
+
+        });
+
+        break;
+    }
+  });
+  return displayList;
+};
 
 function parseFlatFile(lines) {
 
-    function getIndent(line) {
+  function getIndent(line) {
 
-        for(var indent = 0; line[indent] == ' '; )
-            ++ indent;
+    for (var indent = 0; line[indent] == ' ';)
+      ++indent;
 
-        return indent;
-    }
+    return indent;
+  }
 
-    function readFields(indent) {
+  function readFields(indent) {
 
-        var fields = [],
-            field,
-            valueColumn;
+    var fields = [],
+      field,
+      valueColumn;
 
-        while(lines.length > 0) {
+    while (lines.length > 0) {
 
-            var line = lines[0];
+      var line = lines[0];
 
-            var lineIndent = getIndent(line);
+      var lineIndent = getIndent(line);
 
-            if(lineIndent < indent)
-                break;
+      if (lineIndent < indent)
+        break;
 
-            if(lineIndent > indent) {
+      if (lineIndent > indent) {
 
-                if(lineIndent != valueColumn) {
+        if (lineIndent != valueColumn) {
 
-                    /* children of prev field
-                     */
-                    field.children = readFields(lineIndent);
-                    continue;
-                }
-
-                /* continuation
-                 */
-                field.value.push(line.slice(lineIndent));
-            }
-
-            if(lineIndent == indent) {
-
-                /* new field
-                 */
-                var delim = line.indexOf(' ', lineIndent);
-
-                valueColumn = delim + getIndent(line.slice(delim));
-
-                field = {
-                    name: line.slice(lineIndent, delim),
-                    value: [ line.slice(valueColumn) ]
-                };
-
-                fields.push(field);
-            }
-
-            lines = lines.slice(1);
+          /* children of prev field
+           */
+          field.children = readFields(lineIndent);
+          continue;
         }
 
-        return fields;
+        /* continuation
+         */
+        field.value.push(line.slice(lineIndent));
+      }
+
+      if (lineIndent == indent) {
+
+        /* new field
+         */
+        var delim = line.indexOf(' ', lineIndent);
+
+        valueColumn = delim + getIndent(line.slice(delim));
+
+        field = {
+          name: line.slice(lineIndent, delim),
+          value: [line.slice(valueColumn)]
+        };
+
+        fields.push(field);
+      }
+
+      lines = lines.slice(1);
     }
 
-    return readFields(0);
+    return fields;
+  }
+
+  return readFields(0);
 }
 
+if (typeof exports !== 'undefined') {
+  if (typeof module !== 'undefined' && module.exports) {
+    exports = module.exports = genbank;
+  }
+  exports.genbank = genbank;
+}
