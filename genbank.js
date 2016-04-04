@@ -171,19 +171,27 @@ exports.parseGBF = function parseGBF(gbf) {
 
                 /* TODO look for/process specific qualifiers?
                  */
-                for(var i = 1; i < feature.value.length; ++ i) {
+                for(; i < feature.value.length; ++ i) {
 
                     var qualifierLine = feature.value[i];
 
-                    if(qualifierLine[0] !== '/') {
+                    if(qualifierLine[0] === '/') {
 
-                        f[qualifier] += qualifierLine.split('"')[0];
-                        continue;
+                        qualifier = qualifierLine.split('=')[0];
+ 
+                        var value = qualifierLine.split('"')[1];
+
+                        if(!f[qualifier])
+                            f[qualifier] = [ value ]
+                        else
+                            f[qualifier].push(value)
+
+                    } else {
+
+                        f[qualifier][f[qualifier].length - 1]
+                             += qualifierLine.split('"')[0];
                     }
 
-                    qualifier = qualifierLine.slice(1).split('=')[0];
-
-                    f[qualifier] = qualifierLine.split('"')[1];
                 }
 
                 record.features.push(f);
