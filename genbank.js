@@ -152,28 +152,19 @@ exports.parseGBF = function parseGBF(gbf) {
 
             field.children.forEach(function(feature) {
 
-                var location = feature.value[0];
+                var location = ''
 
-                var partial3Prime = location.indexOf('<') !== -1;
-                var partial5Prime = location.indexOf('>') !== -1;
+                for(var i = 0; i < feature.value.length; ++ i) {
 
-                var complement = location.match(/^complement\((.+)\)$/);
+                    if(feature.value[i][0] === '/')
+                        break
 
-                if(complement !== null) {
-                    location = complement[1];
+                    location += feature.value[i]
                 }
-
-                location = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
 
                 var f = {
                     key: feature.name,
-                    location: {
-                        start: parseInt(location[1]),
-                        end: parseInt(location[2]),
-                        partial3Prime: partial3Prime,
-                        partial5Prime: partial5Prime,
-                        strand: complement !== null ? 'complementary' : 'forward'
-                    }
+                    location: parseLocation(location)
                 };
 
                 var qualifier;
@@ -209,42 +200,47 @@ exports.parseGBF = function parseGBF(gbf) {
     return record;
 }
 
-exports.gbfToDisplayList = function gbfToDisplayList(gbf) {
 
-    var displayList = {
-        version: 1,
-        segments: [
-            { id: gbf.locusName,
-              name: gbf.locusName,
-              thickness: 1,
-              sequence: []
-            }
-        ],
+function parseLocation(location) {
 
-        joins: [],
-        arcs: []
-    };
+    var match = location.match(/([a-z]+)\((.*)\)/)
 
-    gbf.features.forEach(function(feature) {
+    if(match !== null) {
 
-        switch(feature.key)
-        {
-        case 'CDS':
+        var modifier = match[1]
 
-            displayList.segments[0].sequence.push({
+        if(modifier === 'complement') {
 
-                type: 'cds',
-                direction: feature.strand == 'complementary' ? 'backward' : 'forward',
-                name: feature.product
+            var innerLocation = parseLocation(match[2])
 
-            });
+            innerLocation.strand = 'complementary'
 
-            break;
-        };
+            return innerLocation
 
-    });
+        } else if(modifier === 'join') {
 
-    return displayList;
+            return match[2].split(',').map(parseLocation)
+
+        } else {
+
+            throw new Error('unknown modifier: ' + modifier)
+
+        }
+
+    } else {
+
+        var partial3Prime = location.indexOf('<') !== -1;
+        var partial5Prime = location.indexOf('>') !== -1;
+
+        var startEndMatch = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
+
+        return {
+            start: parseInt(startEndMatch[1]),
+            end: parseInt(startEndMatch[2]),
+            partial3Prime: partial3Prime,
+            partial5Prime: partial5Prime
+        }
+    }
 }
 
 function parseFlatFile(lines) {
