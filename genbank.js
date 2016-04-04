@@ -188,8 +188,12 @@ exports.parseGBF = function parseGBF(gbf) {
 
                     } else {
 
-                        f[qualifier][f[qualifier].length - 1]
-                             += qualifierLine.split('"')[0];
+                        var value = qualifierLine.split('"')[0];
+
+                        if(qualifier !== '/translation')
+                            value = ' ' + value
+
+                        f[qualifier][f[qualifier].length - 1] += value
                     }
 
                 }
