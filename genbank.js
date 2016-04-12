@@ -205,10 +205,13 @@ exports.parseGBF = function parseGBF(gbf) {
         };
     });
 
-    record.references = record.references.sort(function(a, b) {
-        return a.number - b.number;
-    });
+    if(record.references){
 
+        record.references = record.references.sort(function(a, b) {
+            return a.number - b.number;
+        });
+    }
+	
     return record;
 }
 
