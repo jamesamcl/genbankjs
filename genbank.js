@@ -246,11 +246,20 @@ function parseLocation(location) {
 
         var startEndMatch = location.replace(/[<>]/g, '').match(/^([0-9]+)\.\.([0-9]+)$/);
 
-        return {
-            start: parseInt(startEndMatch[1]),
-            end: parseInt(startEndMatch[2]),
-            partial3Prime: partial3Prime,
-            partial5Prime: partial5Prime
+        if ( startEndMatch == null && location.match(/^([0-9]+)$/) ){
+            return {
+                start: parseInt(location),
+                end: parseInt(location),
+                partial3Prime: partial3Prime,
+                partial5Prime: partial5Prime
+            }
+        } else {
+            return {
+                start: parseInt(startEndMatch[1]),
+                end: parseInt(startEndMatch[2]),
+                partial3Prime: partial3Prime,
+                partial5Prime: partial5Prime
+            }
         }
     }
 }
