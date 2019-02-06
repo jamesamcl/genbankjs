@@ -1,7 +1,7 @@
 
 genbank = require('./genbank');
 
-var sample = require('fs').readFileSync('sample.gbf') + '';
+var sample = require('fs').readFileSync('18500.gbk') + '';
 
 var gbf = genbank.parseGBF(sample);
 

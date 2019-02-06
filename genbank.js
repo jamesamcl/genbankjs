@@ -4,7 +4,7 @@ exports.parseGBF = function parseGBF(gbf) {
     gbf = gbf.split('\n');
 
     for(var origin = 0; origin < gbf.length; ++ origin)
-        if(gbf[origin].indexOf('ORIGIN ') === 0)
+        if(gbf[origin].indexOf('ORIGIN') === 0)
             break;
 
     var record = {
@@ -29,7 +29,7 @@ exports.parseGBF = function parseGBF(gbf) {
         case 'LOCUS':
 
             /* LOCUS       SCU49845                5028 bp    DNA     PLN 23-MAR-2010 */
-            var locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
+            var locus = field.value[0].match(/([^\s]+) +(\d+) bp +([A-Z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
 
             if(locus !== null) {
 
@@ -41,7 +41,7 @@ exports.parseGBF = function parseGBF(gbf) {
             }
 
             /* LOCUS       SCU49845                5028 bp    DNA     linear   PLN 23-MAR-2010 */
-            locus = field.value[0].match(/([A-Z\d]+) +(\d+) bp +([A-Z]+) +([a-z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
+            locus = field.value[0].match(/([^\s]+) +(\d+) bp +([A-Z]+) +([a-z]+) +([A-Z]+) +(\d\d-[A-Z]{3}-\d{4})/);
 
             if(locus !== null) {
 
@@ -52,7 +52,18 @@ exports.parseGBF = function parseGBF(gbf) {
                 record.division = locus[5];
                 record.modified = locus[6];
             }
-            
+
+            /* LOCUS       Ga0070195_11      1491782 bp      DNA linear      29-MAR-2016 */
+            locus = field.value[0].match(/([^\s]+) +(\d+) bp +([A-Z]+) +([a-z]+) +(\d\d-[A-Z]{3}-\d{4})/);
+
+            if(locus !== null) {
+
+                record.locusName = locus[1];
+                record.sequenceLength = locus[2];
+                record.moleculeType = locus[3];
+                record.moleculeTypeDisp = locus[4];
+                record.modified = locus[5];
+            }
 
             break;
 
