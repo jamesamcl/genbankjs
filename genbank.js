@@ -229,6 +229,8 @@ exports.parseGBF = function parseGBF(gbf) {
 
 function parseLocation(location) {
 
+    location = location.trim()
+
     var match = location.match(/([a-z]+)\((.*)\)/)
 
     if(match !== null) {
